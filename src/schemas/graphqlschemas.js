@@ -1,5 +1,6 @@
 const { GraphQLObjectType, GraphQLSchema, GraphQLString, GraphQLFloat, GraphQLList } = require('graphql');
-const ProductModel = require('../models/product'); // Renamed import
+const ProductModel = require('../models/product');
+const UserModel=require('../models/user');
 
 const productType = new GraphQLObjectType({
     name: 'Product',
@@ -11,6 +12,15 @@ const productType = new GraphQLObjectType({
         category: { type: GraphQLString },
     }),
 });
+
+const userType = new GraphQLObjectType({
+    name: 'User',
+    fields: ()=> ({
+        id: { type: GraphQLString}, 
+        username: { type: GraphQLString}, 
+        password: { type: GraphQLString}
+    }),
+})
 
 const rootQuery = new GraphQLObjectType({
     name: 'RootQueryType',
@@ -26,6 +36,19 @@ const rootQuery = new GraphQLObjectType({
             args: { category: { type: GraphQLString } },
             resolve(parent, args) {
                 return ProductModel.find({category: args.category}); // Fetch a single product by ID
+            },
+        },
+        users: {
+            type: new GraphQLList(userType),
+            resolve(parent, args) {
+                return UserModel.find();
+            },
+        },
+        userById: {
+            type: userType,
+            args: {id: {type: GraphQLString}},
+            resolve(parent, args) {
+                return UserModel.findById(args.id)
             },
         },
     },
@@ -52,6 +75,21 @@ const mutation = new GraphQLObjectType({
                 return product.save();
             },
         },
+
+        addUser: {
+            type: userType, 
+            args : {
+                username: { type: GraphQLString},
+                password: { type: GraphQLString}
+            },
+            resolve(parent, args) {
+                const user=new UserModel({
+                    username: args.username, 
+                    password: args.password
+                })
+                return user.save()
+            }
+        }
     },
 });
 
