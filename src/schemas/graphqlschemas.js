@@ -21,11 +21,11 @@ const rootQuery = new GraphQLObjectType({
                 return ProductModel.find(); // Fetch all products
             },
         },
-        product: {
-            type: productType,
-            args: { id: { type: GraphQLString } },
+        productByCategory: {
+            type: new GraphQLList(productType),
+            args: { category: { type: GraphQLString } },
             resolve(parent, args) {
-                return ProductModel.findById(args.id); // Fetch a single product by ID
+                return ProductModel.find({category: args.category}); // Fetch a single product by ID
             },
         },
     },
