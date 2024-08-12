@@ -165,6 +165,18 @@ const mutation = new GraphQLObjectType({
                 return await order.save()
             },
         },
+
+        deleteUser: {
+            type: GraphQLString, 
+            args: {
+                id: {type: GraphQLString}
+            },
+            async resolve(parent, args) {
+                const user=await UserModel.deleteOne({_id: args.id})
+                const order=await OrdersModel.deleteOne({userId: args.id})
+                return "User and his orders removed"
+            }
+        }
     },
 });
 
