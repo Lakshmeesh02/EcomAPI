@@ -176,6 +176,27 @@ const mutation = new GraphQLObjectType({
                 const order=await OrdersModel.deleteOne({userId: args.id})
                 return "User and his orders removed"
             }
+        }, 
+
+        deleteProduct: {
+            type: GraphQLString, 
+            args: {
+                id: { type: GraphQLString}
+            }, 
+            async resolve(parent, args) {
+                const deletedproduct=await ProductModel.findByIdAndDelete(args.id)
+                const orderstoupdate=await OrdersModel.find({ 'products.productId': args.id })
+                for(let order of orderstoupdate) {
+                    const producttoremove=order.products.find(p=> p.productId.toString()===args.id)
+                    if(producttoremove) {
+                        const pricereduction=producttoremove.quantity*deletedproduct.price
+                        order.totalamount-=pricereduction
+                        order.products=order.products.filter(p=> p.productId.toString()!==args.id)
+                        await order.save()
+                    }
+                }
+                return "Product deleted everywhere"
+            }
         }
     },
 });
