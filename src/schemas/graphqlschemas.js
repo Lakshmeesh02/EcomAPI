@@ -147,7 +147,6 @@ const mutation = new GraphQLObjectType({
             },
             async resolve(parent, args) {
                 const product=await ProductModel.findById(args.productId)
-                const itemtotalprice=product.price*args.quantity
                 let order=await OrdersModel.findOne({ userId: args.userId})
 
                 if(!order) {
@@ -157,11 +156,20 @@ const mutation = new GraphQLObjectType({
                         totalamount: 0
                     })
                 }
-                order.products.push({
-                    productId: args.productId,
-                    quantity: args.quantity
-                })
-                order.totalamount+=itemtotalprice
+
+                const existingproductindex=order.products.findIndex(p=>p.productId.toString()===args.productId)
+                if(existingproductindex!==-1) {
+                    const existingproduct=order.products[existingproductindex]
+                    existingproduct.quantity+=args.quantity
+                    order.totalamount+=product.price*args.quantity
+                }
+                else {
+                    order.products.push({
+                        productId: args.productId,
+                        quantity: args.quantity
+                    })
+                    order.totalamount+=product.price*args.quantity
+                }
                 return await order.save()
             },
         },
@@ -196,6 +204,29 @@ const mutation = new GraphQLObjectType({
                     }
                 }
                 return "Product deleted everywhere"
+            }
+        }, 
+
+        deleteOrder: {
+            type: orderType, 
+            args: {
+                userId: {type: GraphQLString}, 
+                productId: {type: GraphQLString}
+            }, 
+            async resolve(parent, args) {
+                const deletedorder=await OrdersModel.findOne({userId: args.userId})
+                const productIndex=deletedorder.products.findIndex(p=> p.productId.toString()===args.productId)
+                const producttodelete=await ProductModel.findById(args.productId)
+                const pricetoreduce=producttodelete.price*deletedorder.products[productIndex].quantity
+                deletedorder.products.splice(productIndex, 1)
+                deletedorder.totalamount-=pricetoreduce
+
+                if(deletedorder.products.length==0) {
+                    await OrdersModel.findByIdAndDelete(deletedorder._id)
+                    return null
+                }
+                else
+                return await deletedorder.save()
             }
         }
     },
